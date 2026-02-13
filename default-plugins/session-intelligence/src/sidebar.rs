@@ -10,9 +10,9 @@ const STATUS_BLOCK: &str = "\u{258c}"; // ▌
 /// Indent prefix for summary and timestamp lines (2 spaces).
 const INDENT: &str = "  ";
 
-/// Render the empty state message when no summaries exist yet.
+/// Render the empty state message when no panes are tracked yet.
 fn render_empty_state(row: usize, width: usize) {
-    let empty_msg = "No session summaries yet.";
+    let empty_msg = "No panes detected yet.";
     let empty_text = Text::new(empty_msg).dim_all();
     print_text_with_coordinates(empty_text, 1, row, Some(width.saturating_sub(1)), Some(1));
 }
@@ -91,6 +91,8 @@ fn hard_wrap(text: &str, max_width: usize) -> Vec<String> {
 ///   Row 1+: <2-space indent><summary line>  (normal weight, wrapped)
 ///   Row N:  <2-space indent><timestamp>     (dim text)
 ///   Row N+1: (blank line separator)
+///
+/// Panes without summaries are shown with a dim "Awaiting summary..." line.
 fn render_pane_entry(
     pane_data: &PaneData,
     start_row: usize,
@@ -104,14 +106,15 @@ fn render_pane_entry(
     let mut rows_used: usize = 0;
 
     // Determine summary and status, falling back to defaults for panes without summaries.
-    let (summary_text, status, timestamp, is_stale) = match &pane_data.summary {
+    let (summary_text, status, timestamp, is_stale, has_summary) = match &pane_data.summary {
         Some(summary) => (
             summary.text.as_str(),
             &summary.status,
             summary.generated_at.as_str(),
             summary.is_stale,
+            true,
         ),
-        None => return 0, // Only render panes that have summaries.
+        None => ("Awaiting summary...", &PaneStatus::Waiting, "", false, false),
     };
 
     // -- Row 0: Status block + pane name --
@@ -134,7 +137,12 @@ fn render_pane_entry(
 
     // Color the status block character according to pane status.
     // When stale, override to yellow/accent to indicate staleness.
-    let header_text = if is_stale {
+    // When no summary yet, show dim.
+    let header_text = if !has_summary {
+        Text::new(&header_line)
+            .color_range(3, 0..status_char_len) // yellow for pending
+            .dim_all()
+    } else if is_stale {
         Text::new(&header_line)
             .color_range(3, 0..status_char_len) // yellow for stale
             .dim_all()
@@ -159,7 +167,7 @@ fn render_pane_entry(
     print_text_with_coordinates(header_text, 0, row, Some(width), Some(1));
     rows_used += 1;
 
-    // -- Summary lines (2-3 lines, indented, normal weight; dim if stale) --
+    // -- Summary lines (2-3 lines, indented, normal weight; dim if stale or pending) --
     let summary_width = width.saturating_sub(INDENT.chars().count());
     let wrapped_lines = hard_wrap(summary_text, summary_width);
 
@@ -169,7 +177,7 @@ fn render_pane_entry(
             return rows_used;
         }
         let indented = format!("{}{}", INDENT, line);
-        let line_text = if is_stale {
+        let line_text = if is_stale || !has_summary {
             Text::new(&indented).dim_all()
         } else {
             Text::new(&indented)
@@ -232,24 +240,23 @@ pub fn render_sidebar(state: &mut PluginState, rows: usize, cols: usize) {
 
     // -- Pane list or empty state --
     let content_start_row: usize = 2;
-    if !state.has_any_summaries() {
+
+    // Collect and sort non-plugin pane entries for deterministic display order.
+    let mut entries: Vec<_> = state
+        .panes
+        .iter()
+        .filter(|((_, is_plugin), _)| !is_plugin)
+        .collect();
+    entries.sort_by_key(|((id, is_plugin), _)| (*id, *is_plugin));
+
+    if entries.is_empty() {
         render_empty_state(content_start_row, width);
     } else {
-        // Collect and sort pane entries for deterministic display order (by pane_id, then is_plugin).
-        let mut entries: Vec<_> = state.panes.iter().collect();
-        entries.sort_by_key(|((id, is_plugin), _)| (*id, *is_plugin));
-
-        // Filter to only panes that have summaries.
-        let entries_with_summaries: Vec<_> = entries
-            .into_iter()
-            .filter(|(_, pane_data)| pane_data.summary.is_some())
-            .collect();
-
         // Render each pane entry, tracking the current row position.
         let mut current_row = content_start_row;
         let mut entries_to_skip = state.scroll_offset;
 
-        for ((id, is_plugin), pane_data) in &entries_with_summaries {
+        for ((id, is_plugin), pane_data) in &entries {
             // Apply scroll offset by skipping entries.
             if entries_to_skip > 0 {
                 entries_to_skip -= 1;

@@ -9,11 +9,26 @@ const DEFAULT_SUMMARIZATION_INTERVAL_SECS: f64 = 120.0;
 /// Default buffer size in lines.
 const DEFAULT_BUFFER_SIZE_LINES: usize = 2000;
 
+/// Which AI provider to use for summarization.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AiProvider {
+    Anthropic,
+    OpenAi,
+}
+
+impl Default for AiProvider {
+    fn default() -> Self {
+        AiProvider::Anthropic
+    }
+}
+
 /// Plugin configuration parsed from KDL config values.
 #[derive(Debug, Clone)]
 pub struct PluginConfig {
     /// API key for the AI service. None if not configured.
     pub api_key: Option<String>,
+    /// Which AI provider to use.
+    pub ai_provider: AiProvider,
     /// How often (in seconds) to trigger summarization.
     pub summarization_interval_secs: f64,
     /// Maximum number of scrollback lines to capture per pane.
@@ -24,6 +39,7 @@ impl Default for PluginConfig {
     fn default() -> Self {
         Self {
             api_key: None,
+            ai_provider: AiProvider::default(),
             summarization_interval_secs: DEFAULT_SUMMARIZATION_INTERVAL_SECS,
             buffer_size_lines: DEFAULT_BUFFER_SIZE_LINES,
         }
@@ -46,6 +62,14 @@ impl PluginConfig {
                  AI summarization will be unavailable"
             );
         }
+
+        let ai_provider = config
+            .get("ai_provider")
+            .map(|v| match v.to_lowercase().as_str() {
+                "openai" | "open_ai" | "open-ai" => AiProvider::OpenAi,
+                _ => AiProvider::Anthropic,
+            })
+            .unwrap_or(AiProvider::Anthropic);
 
         let summarization_interval_secs = config
             .get("summarization_interval")
@@ -95,6 +119,7 @@ impl PluginConfig {
 
         Self {
             api_key,
+            ai_provider,
             summarization_interval_secs,
             buffer_size_lines,
         }
@@ -209,11 +234,6 @@ impl PluginState {
             click_map: Vec::new(),
             session_name: String::new(),
         }
-    }
-
-    /// Check if any pane has an AI-generated summary available.
-    pub fn has_any_summaries(&self) -> bool {
-        self.panes.values().any(|pane| pane.summary.is_some())
     }
 
     /// Update the pane manifest from a PaneUpdate event.

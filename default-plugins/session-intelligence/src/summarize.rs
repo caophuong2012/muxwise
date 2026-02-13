@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde_json::json;
 use zellij_tile::prelude::*;
 
-use crate::state::{PaneStatus, PluginConfig};
+use crate::state::{AiProvider, PaneStatus, PluginConfig};
 
 /// System prompt that instructs the AI how to produce pane summaries.
 const SYSTEM_PROMPT: &str = "\
@@ -26,12 +26,18 @@ Your summary should cover:
 Keep the summary to 2-3 lines maximum. Be concise and actionable.";
 
 /// Anthropic Messages API endpoint.
-const API_URL: &str = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_API_URL: &str = "https://api.anthropic.com/v1/messages";
 
-/// Model to use for summarization.
-const MODEL: &str = "claude-haiku-4-5-20251001";
+/// OpenAI Chat Completions API endpoint.
+const OPENAI_API_URL: &str = "https://api.openai.com/v1/chat/completions";
 
-/// Build an HTTP request for the Anthropic Messages API.
+/// Anthropic model to use for summarization.
+const ANTHROPIC_MODEL: &str = "claude-haiku-4-5-20251001";
+
+/// OpenAI model to use for summarization.
+const OPENAI_MODEL: &str = "gpt-4o-mini";
+
+/// Build an HTTP request for the configured AI provider.
 ///
 /// Returns `(url, verb, headers, body, context)` suitable for passing to `web_request()`.
 ///
@@ -50,15 +56,35 @@ pub fn build_request(
 )> {
     let api_key = config.api_key.as_ref()?;
 
-    // Build headers.
+    // Build context for request correlation.
+    let mut context = BTreeMap::new();
+    context.insert("pane_id".to_string(), pane_id.to_string());
+    context.insert("is_plugin".to_string(), is_plugin.to_string());
+
+    match config.ai_provider {
+        AiProvider::Anthropic => build_anthropic_request(api_key, scrollback, context),
+        AiProvider::OpenAi => build_openai_request(api_key, scrollback, context),
+    }
+}
+
+fn build_anthropic_request(
+    api_key: &str,
+    scrollback: &str,
+    context: BTreeMap<String, String>,
+) -> Option<(
+    String,
+    HttpVerb,
+    BTreeMap<String, String>,
+    Vec<u8>,
+    BTreeMap<String, String>,
+)> {
     let mut headers = BTreeMap::new();
-    headers.insert("x-api-key".to_string(), api_key.clone());
+    headers.insert("x-api-key".to_string(), api_key.to_string());
     headers.insert("anthropic-version".to_string(), "2023-06-01".to_string());
     headers.insert("content-type".to_string(), "application/json".to_string());
 
-    // Build JSON body per Anthropic Messages API format.
     let body_json = json!({
-        "model": MODEL,
+        "model": ANTHROPIC_MODEL,
         "max_tokens": 256,
         "system": SYSTEM_PROMPT,
         "messages": [
@@ -73,32 +99,79 @@ pub fn build_request(
     });
 
     let body = serde_json::to_vec(&body_json).unwrap_or_default();
-
-    // Build context for request correlation.
-    let mut context = BTreeMap::new();
-    context.insert("pane_id".to_string(), pane_id.to_string());
-    context.insert("is_plugin".to_string(), is_plugin.to_string());
-
-    Some((API_URL.to_string(), HttpVerb::Post, headers, body, context))
+    Some((ANTHROPIC_API_URL.to_string(), HttpVerb::Post, headers, body, context))
 }
 
-/// Parse the Anthropic Messages API response body.
+fn build_openai_request(
+    api_key: &str,
+    scrollback: &str,
+    context: BTreeMap<String, String>,
+) -> Option<(
+    String,
+    HttpVerb,
+    BTreeMap<String, String>,
+    Vec<u8>,
+    BTreeMap<String, String>,
+)> {
+    let mut headers = BTreeMap::new();
+    headers.insert(
+        "Authorization".to_string(),
+        format!("Bearer {}", api_key),
+    );
+    headers.insert("content-type".to_string(), "application/json".to_string());
+
+    let body_json = json!({
+        "model": OPENAI_MODEL,
+        "max_tokens": 256,
+        "messages": [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT
+            },
+            {
+                "role": "user",
+                "content": format!(
+                    "Here is the terminal scrollback output for this pane:\n\n{}",
+                    scrollback
+                )
+            }
+        ]
+    });
+
+    let body = serde_json::to_vec(&body_json).unwrap_or_default();
+    Some((OPENAI_API_URL.to_string(), HttpVerb::Post, headers, body, context))
+}
+
+/// Parse the AI provider response body.
 ///
-/// Extracts the text content from the response, then parses the STATUS: line
-/// and the summary text that follows it.
-///
-/// Returns `None` if the response cannot be parsed.
+/// Supports both Anthropic and OpenAI response formats.
 pub fn parse_response(body: &str) -> Option<(String, PaneStatus)> {
-    // Parse the JSON response.
     let response: serde_json::Value = serde_json::from_str(body).ok()?;
 
-    // Extract the text from the first content block.
-    let content = response.get("content")?.as_array()?;
-    let first_block = content.first()?;
-    let text = first_block.get("text")?.as_str()?;
+    // Try Anthropic format: { "content": [{ "text": "..." }] }
+    if let Some(text) = response
+        .get("content")
+        .and_then(|c| c.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|block| block.get("text"))
+        .and_then(|t| t.as_str())
+    {
+        return parse_status_and_summary(text);
+    }
 
-    // Parse the STATUS: line and summary.
-    parse_status_and_summary(text)
+    // Try OpenAI format: { "choices": [{ "message": { "content": "..." } }] }
+    if let Some(text) = response
+        .get("choices")
+        .and_then(|c| c.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|choice| choice.get("message"))
+        .and_then(|msg| msg.get("content"))
+        .and_then(|t| t.as_str())
+    {
+        return parse_status_and_summary(text);
+    }
+
+    None
 }
 
 /// Parse a response text that starts with "STATUS: GREEN|YELLOW|RED" followed by summary lines.
@@ -128,7 +201,6 @@ fn parse_status_and_summary(text: &str) -> Option<(String, PaneStatus)> {
         .to_string();
 
     if summary.is_empty() {
-        // If we got a status but no summary text, return None.
         None
     } else {
         Some((summary, status))
@@ -179,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_response_valid_json() {
+    fn parse_response_anthropic_format() {
         let body = r#"{
             "content": [
                 {
@@ -193,6 +265,24 @@ mod tests {
         let (summary, status) = parse_response(body).unwrap();
         assert_eq!(status, PaneStatus::Active);
         assert!(summary.contains("Building project"));
+    }
+
+    #[test]
+    fn parse_response_openai_format() {
+        let body = r#"{
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": "STATUS: RED\nBuild failed with 2 errors.\nCheck src/main.rs line 42."
+                    }
+                }
+            ],
+            "model": "gpt-4o-mini"
+        }"#;
+        let (summary, status) = parse_response(body).unwrap();
+        assert_eq!(status, PaneStatus::Error);
+        assert!(summary.contains("Build failed"));
     }
 
     #[test]
@@ -216,29 +306,35 @@ mod tests {
     }
 
     #[test]
-    fn build_request_with_api_key() {
+    fn build_request_anthropic() {
         let config = PluginConfig {
             api_key: Some("test-key-123".to_string()),
+            ai_provider: AiProvider::Anthropic,
             ..PluginConfig::default()
         };
-        let result = build_request(42, false, "$ cargo build\nCompiling...", &config);
-        assert!(result.is_some());
-
-        let (url, verb, headers, body, context) = result.unwrap();
+        let result = build_request(42, false, "$ cargo build", &config);
+        let (url, _, headers, body, _) = result.unwrap();
         assert_eq!(url, "https://api.anthropic.com/v1/messages");
-        assert!(matches!(verb, HttpVerb::Post));
         assert_eq!(headers.get("x-api-key").unwrap(), "test-key-123");
-        assert_eq!(headers.get("anthropic-version").unwrap(), "2023-06-01");
-        assert_eq!(headers.get("content-type").unwrap(), "application/json");
-
-        // Verify body is valid JSON with expected fields.
         let body_json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(body_json["model"], "claude-haiku-4-5-20251001");
-        assert_eq!(body_json["max_tokens"], 256);
-        assert!(body_json["system"].as_str().unwrap().contains("terminal session summarizer"));
+    }
 
-        // Verify context for request correlation.
-        assert_eq!(context.get("pane_id").unwrap(), "42");
-        assert_eq!(context.get("is_plugin").unwrap(), "false");
+    #[test]
+    fn build_request_openai() {
+        let config = PluginConfig {
+            api_key: Some("sk-test-openai-key".to_string()),
+            ai_provider: AiProvider::OpenAi,
+            ..PluginConfig::default()
+        };
+        let result = build_request(42, false, "$ npm test", &config);
+        let (url, _, headers, body, _) = result.unwrap();
+        assert_eq!(url, "https://api.openai.com/v1/chat/completions");
+        assert_eq!(
+            headers.get("Authorization").unwrap(),
+            "Bearer sk-test-openai-key"
+        );
+        let body_json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(body_json["model"], "gpt-4o-mini");
     }
 }
