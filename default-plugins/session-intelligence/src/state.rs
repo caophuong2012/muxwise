@@ -4,10 +4,13 @@ use std::collections::VecDeque;
 use zellij_tile::prelude::*;
 
 /// Default summarization interval in seconds.
-const DEFAULT_SUMMARIZATION_INTERVAL_SECS: f64 = 120.0;
+const DEFAULT_SUMMARIZATION_INTERVAL_SECS: f64 = 60.0;
 
 /// Default buffer size in lines.
 const DEFAULT_BUFFER_SIZE_LINES: usize = 2000;
+
+/// Minimum seconds between re-summarizing the same pane, even if content changed.
+const DEFAULT_COOLDOWN_SECS: f64 = 30.0;
 
 /// Which AI provider to use for summarization.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,6 +36,8 @@ pub struct PluginConfig {
     pub summarization_interval_secs: f64,
     /// Maximum number of scrollback lines to capture per pane.
     pub buffer_size_lines: usize,
+    /// Minimum seconds between re-summarizing the same pane.
+    pub cooldown_secs: f64,
 }
 
 impl Default for PluginConfig {
@@ -42,6 +47,7 @@ impl Default for PluginConfig {
             ai_provider: AiProvider::default(),
             summarization_interval_secs: DEFAULT_SUMMARIZATION_INTERVAL_SECS,
             buffer_size_lines: DEFAULT_BUFFER_SIZE_LINES,
+            cooldown_secs: DEFAULT_COOLDOWN_SECS,
         }
     }
 }
@@ -117,11 +123,18 @@ impl PluginConfig {
             })
             .unwrap_or(DEFAULT_BUFFER_SIZE_LINES);
 
+        let cooldown_secs = config
+            .get("cooldown")
+            .and_then(|v| v.parse::<f64>().ok())
+            .filter(|v| *v >= 0.0)
+            .unwrap_or(DEFAULT_COOLDOWN_SECS);
+
         Self {
             api_key,
             ai_provider,
             summarization_interval_secs,
             buffer_size_lines,
+            cooldown_secs,
         }
     }
 }
@@ -188,6 +201,9 @@ pub struct PaneData {
     pub last_scrollback_hash: u64,
     /// AI-generated summary for this pane, if available.
     pub summary: Option<PaneSummary>,
+    /// Elapsed time (in seconds) when the last summary was generated.
+    /// Used for per-pane cooldown to avoid re-summarizing too frequently.
+    pub last_summarized_at: f64,
 }
 
 /// Central plugin state. All state flows through this struct.
@@ -218,6 +234,14 @@ pub struct PluginState {
     /// Session name discovered at runtime from SessionUpdate events.
     /// Used as the filename for JSON state persistence.
     pub session_name: String,
+    /// Number of timer cycles completed (for diagnostics).
+    pub timer_cycles: usize,
+    /// Accumulated elapsed time in seconds (from Timer events).
+    pub elapsed_secs: f64,
+    /// Last diagnostic message for the sidebar footer.
+    pub last_status_msg: String,
+    /// Whether permissions have been granted.
+    pub permissions_granted: bool,
 }
 
 impl PluginState {
@@ -233,6 +257,10 @@ impl PluginState {
             pending_request: None,
             click_map: Vec::new(),
             session_name: String::new(),
+            timer_cycles: 0,
+            elapsed_secs: 0.0,
+            last_status_msg: String::new(),
+            permissions_granted: false,
         }
     }
 
@@ -261,6 +289,9 @@ impl PluginState {
                     .map(|e| e.last_scrollback_hash)
                     .unwrap_or(0);
                 let summary = existing.and_then(|e| e.summary.clone());
+                let last_summarized_at = existing
+                    .map(|e| e.last_summarized_at)
+                    .unwrap_or(0.0);
 
                 new_panes.insert(
                     key,
@@ -269,6 +300,7 @@ impl PluginState {
                         is_plugin: pane_info.is_plugin,
                         last_scrollback_hash,
                         summary,
+                        last_summarized_at,
                     },
                 );
             }

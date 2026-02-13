@@ -228,6 +228,7 @@ pub fn restore_into(persisted: &PersistedState, state: &mut PluginState) {
             is_plugin,
             last_scrollback_hash: 0,
             summary: None,
+            last_summarized_at: 0.0,
         });
 
         // Restore the scrollback hash.

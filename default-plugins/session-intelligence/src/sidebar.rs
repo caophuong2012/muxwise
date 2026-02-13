@@ -92,12 +92,13 @@ fn hard_wrap(text: &str, max_width: usize) -> Vec<String> {
 ///   Row N:  <2-space indent><timestamp>     (dim text)
 ///   Row N+1: (blank line separator)
 ///
-/// Panes without summaries are shown with a dim "Awaiting summary..." line.
+/// Panes without summaries are shown with a dim placeholder line.
 fn render_pane_entry(
     pane_data: &PaneData,
     start_row: usize,
     width: usize,
     max_rows: usize,
+    has_api_key: bool,
 ) -> usize {
     if max_rows == 0 || width == 0 {
         return 0;
@@ -106,6 +107,8 @@ fn render_pane_entry(
     let mut rows_used: usize = 0;
 
     // Determine summary and status, falling back to defaults for panes without summaries.
+    let no_key_msg = "No API key configured";
+    let awaiting_msg = "Awaiting summary...";
     let (summary_text, status, timestamp, is_stale, has_summary) = match &pane_data.summary {
         Some(summary) => (
             summary.text.as_str(),
@@ -114,7 +117,10 @@ fn render_pane_entry(
             summary.is_stale,
             true,
         ),
-        None => ("Awaiting summary...", &PaneStatus::Waiting, "", false, false),
+        None => {
+            let msg = if has_api_key { awaiting_msg } else { no_key_msg };
+            (msg, &PaneStatus::Waiting, "", false, false)
+        },
     };
 
     // -- Row 0: Status block + pane name --
@@ -252,6 +258,8 @@ pub fn render_sidebar(state: &mut PluginState, rows: usize, cols: usize) {
     if entries.is_empty() {
         render_empty_state(content_start_row, width);
     } else {
+        let has_api_key = state.config.api_key.is_some();
+
         // Render each pane entry, tracking the current row position.
         let mut current_row = content_start_row;
         let mut entries_to_skip = state.scroll_offset;
@@ -268,7 +276,8 @@ pub fn render_sidebar(state: &mut PluginState, rows: usize, cols: usize) {
                 break;
             }
 
-            let rows_consumed = render_pane_entry(pane_data, current_row, width, remaining_rows);
+            let rows_consumed =
+                render_pane_entry(pane_data, current_row, width, remaining_rows, has_api_key);
 
             // Populate click_map: all rows of this entry map to this pane.
             for r in current_row..current_row + rows_consumed {
@@ -279,6 +288,40 @@ pub fn render_sidebar(state: &mut PluginState, rows: usize, cols: usize) {
 
             current_row += rows_consumed;
         }
+    }
+
+    // -- Diagnostic footer at the bottom --
+    render_diagnostics(state, rows, width);
+}
+
+/// Render diagnostic info at the bottom of the sidebar.
+fn render_diagnostics(state: &PluginState, rows: usize, width: usize) {
+    if rows < 4 || width == 0 {
+        return;
+    }
+
+    let sep_row = rows.saturating_sub(3);
+    let separator: String = "\u{2500}".repeat(width);
+    let sep_text = Text::new(&separator).dim_all();
+    print_text_with_coordinates(sep_text, 0, sep_row, Some(width), Some(1));
+
+    // Line 1: key stats
+    let api_str = if state.config.api_key.is_some() { "key:Y" } else { "key:N" };
+    let perm_str = if state.permissions_granted { "perm:Y" } else { "perm:N" };
+    let q_len = state.summarization_queue.len();
+    let pending = if state.pending_request.is_some() { "req:Y" } else { "req:N" };
+    let stats = format!(
+        "{} {} q:{} {}",
+        api_str, perm_str, q_len, pending,
+    );
+    let stats_text = Text::new(&stats).dim_all();
+    print_text_with_coordinates(stats_text, 0, sep_row + 1, Some(width), Some(1));
+
+    // Line 2: last status message
+    if !state.last_status_msg.is_empty() {
+        let msg: String = state.last_status_msg.chars().take(width).collect();
+        let msg_text = Text::new(&msg).dim_all();
+        print_text_with_coordinates(msg_text, 0, sep_row + 2, Some(width), Some(1));
     }
 }
 
