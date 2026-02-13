@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:docs.warp.dev)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.warp.dev)",
+      "Bash(chmod:*)",
+      "Bash(python3 bmad_prompt2product.py:*)",
+      "Bash(claude:*)",
+      "Bash(python3:*)",
+      "Bash(python3.11:*)",
+      "Bash(pip3 install:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo test:*)"
+    ]
+  }
+}
