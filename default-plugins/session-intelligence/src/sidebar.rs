@@ -294,35 +294,37 @@ pub fn render_sidebar(state: &mut PluginState, rows: usize, cols: usize) {
     render_diagnostics(state, rows, width);
 }
 
+/// Format a token count for compact display (e.g., 1234 -> "1.2k").
+fn format_tokens(count: u64) -> String {
+    if count >= 1_000_000 {
+        format!("{:.1}M", count as f64 / 1_000_000.0)
+    } else if count >= 1_000 {
+        format!("{:.1}k", count as f64 / 1_000.0)
+    } else {
+        format!("{}", count)
+    }
+}
+
 /// Render diagnostic info at the bottom of the sidebar.
 fn render_diagnostics(state: &PluginState, rows: usize, width: usize) {
-    if rows < 4 || width == 0 {
+    if rows < 3 || width == 0 {
         return;
     }
 
-    let sep_row = rows.saturating_sub(3);
+    let sep_row = rows.saturating_sub(2);
     let separator: String = "\u{2500}".repeat(width);
     let sep_text = Text::new(&separator).dim_all();
     print_text_with_coordinates(sep_text, 0, sep_row, Some(width), Some(1));
 
-    // Line 1: key stats
-    let api_str = if state.config.api_key.is_some() { "key:Y" } else { "key:N" };
-    let perm_str = if state.permissions_granted { "perm:Y" } else { "perm:N" };
-    let q_len = state.summarization_queue.len();
-    let pending = if state.pending_request.is_some() { "req:Y" } else { "req:N" };
-    let stats = format!(
-        "{} {} q:{} {}",
-        api_str, perm_str, q_len, pending,
-    );
+    // Line 1: token usage
+    let total_tokens = state.total_input_tokens + state.total_output_tokens;
+    let stats = if total_tokens > 0 {
+        format!("tokens: {}", format_tokens(total_tokens))
+    } else {
+        "tokens: 0".to_string()
+    };
     let stats_text = Text::new(&stats).dim_all();
     print_text_with_coordinates(stats_text, 0, sep_row + 1, Some(width), Some(1));
-
-    // Line 2: last status message
-    if !state.last_status_msg.is_empty() {
-        let msg: String = state.last_status_msg.chars().take(width).collect();
-        let msg_text = Text::new(&msg).dim_all();
-        print_text_with_coordinates(msg_text, 0, sep_row + 2, Some(width), Some(1));
-    }
 }
 
 #[cfg(test)]

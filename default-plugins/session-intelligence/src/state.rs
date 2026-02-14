@@ -242,6 +242,10 @@ pub struct PluginState {
     pub last_status_msg: String,
     /// Whether permissions have been granted.
     pub permissions_granted: bool,
+    /// Cumulative input tokens used across all API calls.
+    pub total_input_tokens: u64,
+    /// Cumulative output tokens used across all API calls.
+    pub total_output_tokens: u64,
 }
 
 impl PluginState {
@@ -261,6 +265,8 @@ impl PluginState {
             elapsed_secs: 0.0,
             last_status_msg: String::new(),
             permissions_granted: false,
+            total_input_tokens: 0,
+            total_output_tokens: 0,
         }
     }
 

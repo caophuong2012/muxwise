@@ -302,9 +302,12 @@ impl ZellijPlugin for PluginState {
 
                 if status_code == 200 {
                     let body_str = String::from_utf8_lossy(&body);
-                    if let Some((summary_text, pane_status)) =
+                    if let Some((summary_text, pane_status, usage)) =
                         summarize::parse_response(&body_str)
                     {
+                        self.total_input_tokens += usage.input_tokens;
+                        self.total_output_tokens += usage.output_tokens;
+
                         if let Some(pane_id) = pane_id {
                             let key = (pane_id, is_plugin);
                             let mut summary_updated = false;

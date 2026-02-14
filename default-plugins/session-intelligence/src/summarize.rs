@@ -142,11 +142,21 @@ fn build_openai_request(
     Some((OPENAI_API_URL.to_string(), HttpVerb::Post, headers, body, context))
 }
 
+/// Token usage from an API response.
+#[derive(Debug, Clone, Default)]
+pub struct TokenUsage {
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+}
+
 /// Parse the AI provider response body.
 ///
 /// Supports both Anthropic and OpenAI response formats.
-pub fn parse_response(body: &str) -> Option<(String, PaneStatus)> {
+/// Returns (summary_text, status, token_usage).
+pub fn parse_response(body: &str) -> Option<(String, PaneStatus, TokenUsage)> {
     let response: serde_json::Value = serde_json::from_str(body).ok()?;
+
+    let usage = parse_usage(&response);
 
     // Try Anthropic format: { "content": [{ "text": "..." }] }
     if let Some(text) = response
@@ -156,7 +166,7 @@ pub fn parse_response(body: &str) -> Option<(String, PaneStatus)> {
         .and_then(|block| block.get("text"))
         .and_then(|t| t.as_str())
     {
-        return parse_status_and_summary(text);
+        return parse_status_and_summary(text).map(|(s, st)| (s, st, usage.clone()));
     }
 
     // Try OpenAI format: { "choices": [{ "message": { "content": "..." } }] }
@@ -168,10 +178,38 @@ pub fn parse_response(body: &str) -> Option<(String, PaneStatus)> {
         .and_then(|msg| msg.get("content"))
         .and_then(|t| t.as_str())
     {
-        return parse_status_and_summary(text);
+        return parse_status_and_summary(text).map(|(s, st)| (s, st, usage.clone()));
     }
 
     None
+}
+
+/// Parse token usage from the API response JSON.
+///
+/// Anthropic: { "usage": { "input_tokens": N, "output_tokens": N } }
+/// OpenAI:    { "usage": { "prompt_tokens": N, "completion_tokens": N } }
+fn parse_usage(response: &serde_json::Value) -> TokenUsage {
+    let usage = match response.get("usage") {
+        Some(u) => u,
+        None => return TokenUsage::default(),
+    };
+
+    let input = usage
+        .get("input_tokens")
+        .and_then(|v| v.as_u64())
+        .or_else(|| usage.get("prompt_tokens").and_then(|v| v.as_u64()))
+        .unwrap_or(0);
+
+    let output = usage
+        .get("output_tokens")
+        .and_then(|v| v.as_u64())
+        .or_else(|| usage.get("completion_tokens").and_then(|v| v.as_u64()))
+        .unwrap_or(0);
+
+    TokenUsage {
+        input_tokens: input,
+        output_tokens: output,
+    }
 }
 
 /// Parse a response text that starts with "STATUS: GREEN|YELLOW|RED" followed by summary lines.
@@ -262,7 +300,7 @@ mod tests {
             "model": "claude-haiku-4-5-20251001",
             "role": "assistant"
         }"#;
-        let (summary, status) = parse_response(body).unwrap();
+        let (summary, status, _usage) = parse_response(body).unwrap();
         assert_eq!(status, PaneStatus::Active);
         assert!(summary.contains("Building project"));
     }
@@ -280,7 +318,7 @@ mod tests {
             ],
             "model": "gpt-4o-mini"
         }"#;
-        let (summary, status) = parse_response(body).unwrap();
+        let (summary, status, _usage) = parse_response(body).unwrap();
         assert_eq!(status, PaneStatus::Error);
         assert!(summary.contains("Build failed"));
     }
