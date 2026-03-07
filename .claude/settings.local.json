@@ -13,7 +13,10 @@
       "Bash(pip3 install:*)",
       "Bash(cargo build:*)",
       "Bash(cargo check:*)",
-      "Bash(cargo test:*)"
+      "Bash(cargo test:*)",
+      "Bash(ls:*)",
+      "Bash(file:*)",
+      "Bash(grep:*)"
     ]
   }
 }

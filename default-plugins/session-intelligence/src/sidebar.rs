@@ -247,11 +247,12 @@ pub fn render_sidebar(state: &mut PluginState, rows: usize, cols: usize) {
     // -- Pane list or empty state --
     let content_start_row: usize = 2;
 
-    // Collect and sort non-plugin pane entries for deterministic display order.
+    // Collect and sort non-plugin pane entries for the active tab only.
+    let active_tab = state.active_tab_index;
     let mut entries: Vec<_> = state
         .panes
         .iter()
-        .filter(|((_, is_plugin), _)| !is_plugin)
+        .filter(|((_, is_plugin), pane_data)| !is_plugin && pane_data.tab_index == active_tab)
         .collect();
     entries.sort_by_key(|((id, is_plugin), _)| (*id, *is_plugin));
 

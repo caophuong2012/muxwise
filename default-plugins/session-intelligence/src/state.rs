@@ -195,6 +195,8 @@ pub struct PaneSummary {
 pub struct PaneData {
     pub name: String,
     pub is_plugin: bool,
+    /// The tab index this pane belongs to.
+    pub tab_index: usize,
     /// Hash of the last captured scrollback content. Used for change detection
     /// so that only panes whose output has changed are queued for summarization.
     /// Defaults to 0 (matching the hash of empty content).
@@ -246,6 +248,8 @@ pub struct PluginState {
     pub total_input_tokens: u64,
     /// Cumulative output tokens used across all API calls.
     pub total_output_tokens: u64,
+    /// The currently active (focused) tab index. Updated via TabUpdate events.
+    pub active_tab_index: usize,
 }
 
 impl PluginState {
@@ -267,6 +271,7 @@ impl PluginState {
             permissions_granted: false,
             total_input_tokens: 0,
             total_output_tokens: 0,
+            active_tab_index: 0,
         }
     }
 
@@ -279,7 +284,7 @@ impl PluginState {
         // Build a set of all pane keys present in the new manifest.
         let mut new_panes: HashMap<(u32, bool), PaneData> = HashMap::new();
 
-        for (_tab_index, pane_infos) in &pane_manifest.panes {
+        for (tab_index, pane_infos) in &pane_manifest.panes {
             for pane_info in pane_infos {
                 let key = (pane_info.id, pane_info.is_plugin);
                 let name = if pane_info.title.is_empty() {
@@ -304,6 +309,7 @@ impl PluginState {
                     PaneData {
                         name,
                         is_plugin: pane_info.is_plugin,
+                        tab_index: *tab_index,
                         last_scrollback_hash,
                         summary,
                         last_summarized_at,

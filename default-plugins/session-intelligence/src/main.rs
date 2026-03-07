@@ -15,7 +15,13 @@ register_plugin!(PluginState);
 impl PluginState {
     /// Run a summarization scan: check scrollback hashes and queue changed panes.
     fn run_summarization_scan(&mut self) {
-        let pane_keys: Vec<(u32, bool)> = self.panes.keys().cloned().collect();
+        let active_tab = self.active_tab_index;
+        let pane_keys: Vec<(u32, bool)> = self
+            .panes
+            .iter()
+            .filter(|(_, data)| data.tab_index == active_tab)
+            .map(|(key, _)| *key)
+            .collect();
         let terminal_pane_count = pane_keys.iter().filter(|(_, p)| !p).count();
 
         if terminal_pane_count == 0 {
@@ -130,6 +136,7 @@ impl ZellijPlugin for PluginState {
             EventType::Key,
             EventType::Mouse,
             EventType::PaneUpdate,
+            EventType::TabUpdate,
             EventType::SessionUpdate,
             EventType::WebRequestResult,
             EventType::PermissionRequestResult,
@@ -178,6 +185,17 @@ impl ZellijPlugin for PluginState {
                 );
                 should_render = true;
             },
+            Event::TabUpdate(tab_infos) => {
+                for tab_info in &tab_infos {
+                    if tab_info.active {
+                        if self.active_tab_index != tab_info.position {
+                            self.active_tab_index = tab_info.position;
+                            should_render = true;
+                        }
+                        break;
+                    }
+                }
+            },
             Event::Timer(elapsed) => {
                 self.timer_cycles += 1;
                 self.elapsed_secs += elapsed as f64;
@@ -197,12 +215,13 @@ impl ZellijPlugin for PluginState {
                     // Manual summarization trigger: press 's' while focused on plugin pane.
                     self.timer_cycles += 1;
 
-                    // Step 1: Test if we can read pane scrollback.
+                    // Step 1: Test if we can read pane scrollback (active tab only).
+                    let active_tab = self.active_tab_index;
                     let pane_keys: Vec<(u32, bool)> = self
                         .panes
-                        .keys()
-                        .filter(|(_, is_plugin)| !is_plugin)
-                        .cloned()
+                        .iter()
+                        .filter(|((_, is_plugin), data)| !is_plugin && data.tab_index == active_tab)
+                        .map(|(key, _)| *key)
                         .collect();
 
                     if pane_keys.is_empty() {

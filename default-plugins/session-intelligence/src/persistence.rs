@@ -226,6 +226,7 @@ pub fn restore_into(persisted: &PersistedState, state: &mut PluginState) {
         let pane_data = state.panes.entry(pane_key).or_insert_with(|| PaneData {
             name: persisted_pane.name.clone(),
             is_plugin,
+            tab_index: 0,
             last_scrollback_hash: 0,
             summary: None,
             last_summarized_at: 0.0,
