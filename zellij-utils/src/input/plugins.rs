@@ -69,6 +69,7 @@ impl PluginConfig {
                     || tag == "multiple-select"
                     || tag == "sequence"
                     || tag == "layout-manager"
+                    || tag == "session-intelligence"
                 {
                     Some(PluginConfig {
                         path: PathBuf::from(&tag),

@@ -249,6 +249,7 @@ plugins {
     plugin-manager location="zellij:plugin-manager"
     about location="zellij:about"
     sequence location="zellij:sequence"
+    session-intelligence location="zellij:session-intelligence"
 }
 
 // Plugins to load in the background when a new session starts

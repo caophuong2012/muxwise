@@ -2,7 +2,12 @@ layout {
     pane size=1 borderless=true {
         plugin location="tab-bar"
     }
-    pane
+    pane split_direction="vertical" {
+        pane
+        pane size="30%" {
+            plugin location="session-intelligence"
+        }
+    }
     pane size=1 borderless=true {
         plugin location="status-bar"
     }
