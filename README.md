@@ -73,17 +73,25 @@ For general Zellij configuration, see the [Zellij Configuration Documentation](h
 - [x] Built-in as a default plugin — no setup beyond adding your API key
 
 ### What we're exploring next
-- [ ] Per-pane cost breakdown (not just total tokens)
-- [ ] Configurable sidebar position (left or right) and width
-- [ ] Summary history — see how a session evolved over time, not just latest state
-- [ ] Smarter idle detection — distinguish "waiting for user input" from "long-running process"
-- [ ] Keyboard shortcut to cycle through panes with errors (RED status)
+- [ ] **Scrollback snapshots** — save captured scrollback before it gets destroyed by terminal compaction or `/clear`, so context is never permanently lost
+- [ ] **Summary history** — see how a session evolved over time, not just the latest state. Useful for picking up where you left off after hours or days
+- [ ] **Session handoff notes** — export a session's summary timeline as markdown, so you can hand context to a colleague or your future self
+- [ ] **Diff-aware summaries** — highlight what changed since your last check-in, not just the current state. Helps when reviewing multiple parallel sessions
+- [ ] **Smarter idle detection** — distinguish "waiting for user input" from "long-running process still working"
+- [ ] **Keyboard shortcut to cycle through errors** — jump directly to panes with RED status
+- [ ] **Per-pane cost breakdown** — see token spend per session, not just the total
 
 ### Ideas we're considering (no promises)
+- [ ] Detect specific tools (Claude Code, Codex, vim, cargo) and tailor summaries to their output patterns
 - [ ] SSH-aware summarization — detect remote sessions and include host info
-- [ ] Detect specific tools (Claude Code, vim, cargo, npm) and tailor summaries
 - [ ] Budget alerts — warn when token spend exceeds a threshold
-- [ ] Export session timeline as markdown for handoff notes
+- [ ] Configurable sidebar position (left or right) and width
+
+### Out of scope
+These are real problems, but they need different tools:
+- **Git worktree isolation per agent** — use [git worktrees](https://git-scm.com/docs/git-worktree) or tools like [Parallel Code](https://dev.to/johannesjo/why-multitasking-with-ai-coding-agents-breaks-down-and-how-i-fixed-it-2lm0)
+- **Background/cloud agent execution** — requires a daemon architecture, not a terminal plugin
+- **Agent orchestration** — Muxwise observes sessions, it doesn't control them
 
 We're building what's useful, not what sounds impressive. If you have ideas, [open an issue](https://github.com/caophuong2012/muxwise/issues).
 
