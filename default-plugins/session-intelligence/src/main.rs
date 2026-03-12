@@ -42,6 +42,7 @@ impl PluginState {
         let now = self.elapsed_secs;
         let cooldown = self.config.cooldown_secs;
         let mut queued_count = 0usize;
+        let mut total_scrollback_chars = 0usize;
 
         for (pane_id, is_plugin) in pane_keys {
             if is_plugin {
@@ -50,6 +51,7 @@ impl PluginState {
 
             let buffer_size = self.config.buffer_size_lines;
             let scrollback = capture::fetch_scrollback(pane_id, is_plugin, buffer_size);
+            total_scrollback_chars += scrollback.len();
             let new_hash = capture::hash_scrollback(&scrollback);
             eprintln!(
                 "session-intelligence: pane {} scrollback: {} chars, hash: {}",
@@ -95,14 +97,21 @@ impl PluginState {
             }
         }
 
+        // Build a detailed status for the diagnostics footer.
+        let provider = match self.config.ai_provider {
+            state::AiProvider::Anthropic => "anth",
+            state::AiProvider::OpenAi => "oai",
+            state::AiProvider::OpenRouter => "or",
+        };
         self.last_status_msg = format!(
-            "Scan #{}: {}p, {}q",
-            self.timer_cycles, terminal_pane_count, queued_count
+            "#{} {}p {}q {}ch [{}]",
+            self.timer_cycles, terminal_pane_count, queued_count, total_scrollback_chars, provider
         );
         eprintln!(
-            "session-intelligence: scan #{}: {} terminal pane(s), {} queued, api_key={}",
+            "session-intelligence: scan #{}: {} terminal pane(s), {} queued, api_key={}, provider={:?}",
             self.timer_cycles, terminal_pane_count, queued_count,
-            if self.config.api_key.is_some() { "yes" } else { "no" }
+            if self.config.api_key.is_some() { "yes" } else { "no" },
+            self.config.ai_provider
         );
 
         self.dequeue_next_summarization();
@@ -134,11 +143,15 @@ impl PluginState {
             summarize::build_request(pane_id, is_plugin, &scrollback, &self.config)
         {
             eprintln!(
-                "session-intelligence: sending API request for pane {} ({} bytes)",
-                pane_id, body.len()
+                "session-intelligence: sending API request for pane {} ({} bytes) to {}",
+                pane_id, body.len(), url
             );
+            self.last_status_msg = format!("API req pane {}...", pane_id);
             web_request(&url, verb, headers, body, context);
             self.pending_request = Some((pane_id, is_plugin));
+        } else {
+            eprintln!("session-intelligence: build_request returned None for pane {}", pane_id);
+            self.last_status_msg = "No API key?".to_string();
         }
     }
 }
