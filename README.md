@@ -61,6 +61,32 @@ For general Zellij configuration, see the [Zellij Configuration Documentation](h
 | `s` | Manually trigger a summarization scan |
 | Click | Navigate to the clicked pane |
 
+## Roadmap
+
+### What works today
+- [x] AI-generated summaries of terminal pane scrollback
+- [x] Status colors (GREEN/YELLOW/RED) based on session state
+- [x] Sidebar with click-to-navigate between panes
+- [x] State persistence across detach/re-attach
+- [x] Token usage tracking
+- [x] Support for Anthropic (Claude Haiku) and OpenAI (GPT-4o-mini)
+- [x] Built-in as a default plugin — no setup beyond adding your API key
+
+### What we're exploring next
+- [ ] Per-pane cost breakdown (not just total tokens)
+- [ ] Configurable sidebar position (left or right) and width
+- [ ] Summary history — see how a session evolved over time, not just latest state
+- [ ] Smarter idle detection — distinguish "waiting for user input" from "long-running process"
+- [ ] Keyboard shortcut to cycle through panes with errors (RED status)
+
+### Ideas we're considering (no promises)
+- [ ] SSH-aware summarization — detect remote sessions and include host info
+- [ ] Detect specific tools (Claude Code, vim, cargo, npm) and tailor summaries
+- [ ] Budget alerts — warn when token spend exceeds a threshold
+- [ ] Export session timeline as markdown for handoff notes
+
+We're building what's useful, not what sounds impressive. If you have ideas, [open an issue](https://github.com/caophuong2012/muxwise/issues).
+
 ## Development
 
 ```bash
