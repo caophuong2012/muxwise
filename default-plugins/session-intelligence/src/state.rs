@@ -206,6 +206,8 @@ pub struct PaneData {
     /// Elapsed time (in seconds) when the last summary was generated.
     /// Used for per-pane cooldown to avoid re-summarizing too frequently.
     pub last_summarized_at: f64,
+    /// Last captured scrollback content, used for persistence across restarts.
+    pub last_scrollback: Option<String>,
 }
 
 /// Central plugin state. All state flows through this struct.
@@ -303,6 +305,8 @@ impl PluginState {
                 let last_summarized_at = existing
                     .map(|e| e.last_summarized_at)
                     .unwrap_or(0.0);
+                let last_scrollback = existing
+                    .and_then(|e| e.last_scrollback.clone());
 
                 new_panes.insert(
                     key,
@@ -313,6 +317,7 @@ impl PluginState {
                         last_scrollback_hash,
                         summary,
                         last_summarized_at,
+                        last_scrollback,
                     },
                 );
             }

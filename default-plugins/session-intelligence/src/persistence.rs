@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::sanitize;
 use crate::state::{PaneData, PaneStatus, PaneSummary, PluginState};
 
 /// Current persistence format version.
@@ -74,6 +75,70 @@ fn state_dir() -> std::path::PathBuf {
 /// Compute the full path for a session's JSON state file.
 fn state_file_path(session_name: &str) -> std::path::PathBuf {
     state_dir().join(format!("{}.json", session_name))
+}
+
+/// Directory for scrollback snapshots for a given session.
+fn scrollback_dir(session_name: &str) -> std::path::PathBuf {
+    state_dir().join("scrollback").join(session_name)
+}
+
+/// File path for a single pane's scrollback snapshot.
+fn scrollback_file_path(session_name: &str, pane_id: u32, is_plugin: bool) -> std::path::PathBuf {
+    scrollback_dir(session_name).join(format!("{}_{}.txt", pane_id, is_plugin))
+}
+
+/// Save a scrollback snapshot for a pane.
+///
+/// The scrollback is sanitized before writing to disk to prevent
+/// sensitive data from being persisted in plain text files.
+pub fn save_scrollback(session_name: &str, pane_id: u32, is_plugin: bool, scrollback: &str) {
+    if session_name.is_empty() || scrollback.is_empty() {
+        return;
+    }
+
+    let dir = scrollback_dir(session_name);
+    if let Err(e) = std::fs::create_dir_all(&dir) {
+        eprintln!(
+            "session-intelligence: persistence: failed to create scrollback dir {:?}: {}",
+            dir, e
+        );
+        return;
+    }
+
+    // Sanitize before writing to disk.
+    let sanitized = sanitize::sanitize_scrollback(scrollback);
+
+    let path = scrollback_file_path(session_name, pane_id, is_plugin);
+    if let Err(e) = std::fs::write(&path, &sanitized) {
+        eprintln!(
+            "session-intelligence: persistence: failed to write scrollback {:?}: {}",
+            path, e
+        );
+    }
+}
+
+/// Load a scrollback snapshot for a pane.
+///
+/// Returns None if the file doesn't exist or can't be read.
+pub fn load_scrollback(session_name: &str, pane_id: u32, is_plugin: bool) -> Option<String> {
+    if session_name.is_empty() {
+        return None;
+    }
+
+    let path = scrollback_file_path(session_name, pane_id, is_plugin);
+    match std::fs::read_to_string(&path) {
+        Ok(content) if !content.is_empty() => Some(content),
+        Ok(_) => None,
+        Err(e) => {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                eprintln!(
+                    "session-intelligence: persistence: failed to read scrollback {:?}: {}",
+                    path, e
+                );
+            }
+            None
+        },
+    }
 }
 
 /// Save the current plugin state to a JSON file on disk.
@@ -230,10 +295,14 @@ pub fn restore_into(persisted: &PersistedState, state: &mut PluginState) {
             last_scrollback_hash: 0,
             summary: None,
             last_summarized_at: 0.0,
+            last_scrollback: None,
         });
 
         // Restore the scrollback hash.
         pane_data.last_scrollback_hash = persisted_pane.last_scrollback_hash;
+
+        // Restore scrollback snapshot from disk.
+        pane_data.last_scrollback = load_scrollback(&state.session_name, pane_id, is_plugin);
 
         // Restore the summary if one was persisted.
         if let Some(ref summary_text) = persisted_pane.summary_text {
@@ -256,9 +325,13 @@ pub fn restore_into(persisted: &PersistedState, state: &mut PluginState) {
         }
     }
 
+    let scrollback_count = state.panes.values()
+        .filter(|p| p.last_scrollback.is_some())
+        .count();
     eprintln!(
-        "session-intelligence: persistence: restored {} pane(s), sidebar_visible={}",
+        "session-intelligence: persistence: restored {} pane(s), {} with scrollback, sidebar_visible={}",
         persisted.panes.len(),
+        scrollback_count,
         persisted.sidebar_visible
     );
 }

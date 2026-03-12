@@ -47,6 +47,14 @@ impl PluginState {
             let new_hash = capture::hash_scrollback(&scrollback);
 
             if let Some(pane_data) = self.panes.get_mut(&(pane_id, is_plugin)) {
+                // Save scrollback snapshot whenever content changes (survives reboots).
+                if !scrollback.is_empty() && new_hash != pane_data.last_scrollback_hash {
+                    pane_data.last_scrollback = Some(scrollback.clone());
+                    persistence::save_scrollback(
+                        &self.session_name, pane_id, is_plugin, &scrollback,
+                    );
+                }
+
                 if new_hash != pane_data.last_scrollback_hash {
                     // Check per-pane cooldown: skip if summarized too recently.
                     let since_last = now - pane_data.last_summarized_at;

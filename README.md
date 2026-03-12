@@ -115,7 +115,7 @@ This is **best-effort, not a guarantee**. If you work with highly sensitive syst
 - [x] Built-in as a default plugin — no setup beyond adding your API key
 
 ### What we're exploring next
-- [ ] **Scrollback snapshots** — save captured scrollback before it gets destroyed by terminal compaction or `/clear`, so context is never permanently lost
+- [x] **Scrollback snapshots** — saves captured scrollback to disk (sanitized) before it gets destroyed by terminal compaction or `/clear`, so context survives reboots
 - [ ] **Summary history** — see how a session evolved over time, not just the latest state. Useful for picking up where you left off after hours or days
 - [ ] **Session handoff notes** — export a session's summary timeline as markdown, so you can hand context to a colleague or your future self
 - [ ] **Diff-aware summaries** — highlight what changed since your last check-in, not just the current state. Helps when reviewing multiple parallel sessions
