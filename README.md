@@ -22,13 +22,15 @@ curl -sSL https://raw.githubusercontent.com/caophuong2012/muxwise/main/install.s
 
 This detects your OS and architecture, downloads the latest release binary, and installs it to `/usr/local/bin/muxwise`. Works on **macOS** (Intel & Apple Silicon) and **Linux** (x86_64 & aarch64).
 
+To **update**, run the same command — it downloads the latest version and replaces the old one.
+
 Then just run:
 
 ```bash
 muxwise
 ```
 
-The Session Intelligence sidebar is included in the default layout — just launch and it's there.
+The sidebar is included in the default layout — just launch and it's there.
 
 <details>
 <summary>Build from source (advanced)</summary>
