@@ -107,7 +107,7 @@ fn render_pane_entry(
     let mut rows_used: usize = 0;
 
     // Determine summary and status, falling back to defaults for panes without summaries.
-    let no_key_msg = "No API key configured";
+    let no_key_msg = "Add ai_api_key to config.kdl";
     let awaiting_msg = "Awaiting summary...";
     let (summary_text, status, timestamp, is_stale, has_summary) = match &pane_data.summary {
         Some(summary) => (
@@ -235,7 +235,7 @@ pub fn render_sidebar(state: &mut PluginState, rows: usize, cols: usize) {
     }
 
     // -- Header --
-    let header = "Session Intelligence";
+    let header = "Muxwise";
     let header_text = Text::new(header).selected();
     print_text_with_coordinates(header_text, 0, 0, Some(width), Some(1));
 

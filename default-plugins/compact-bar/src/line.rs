@@ -293,7 +293,7 @@ impl TabLinePrefixBuilder {
     }
 
     fn create_zellij_part(&self) -> LinePart {
-        let prefix_text = " Zellij ";
+        let prefix_text = " Muxwise ";
         let colors = self.get_text_colors();
 
         LinePart {
