@@ -44,6 +44,21 @@ plugins {
 
 For general Zellij configuration, see the [Zellij Configuration Documentation](https://zellij.dev/documentation/configuration.html).
 
+## Security
+
+Muxwise sends terminal scrollback to an external AI API for summarization. To protect sensitive data, a **built-in sanitizer** automatically redacts common secret patterns before anything leaves your machine:
+
+- **Environment variables** — `export API_KEY=...`, `DATABASE_URL=...`, and 30+ known secret key names
+- **API tokens** — OpenAI (`sk-`), Anthropic (`sk-ant-`), GitHub (`ghp_`, `gho_`), Slack (`xoxb-`, `xoxp-`), AWS (`AKIA`), npm, PyPI
+- **JWT tokens** — `eyJ...` base64-encoded tokens
+- **Private keys** — PEM-encoded `-----BEGIN ... PRIVATE KEY-----` blocks
+- **Connection strings** — URLs containing credentials
+
+This is **best-effort, not a guarantee**. If you work with highly sensitive systems, consider:
+- Not configuring an API key (the sidebar still shows pane names, just no summaries)
+- Using a self-hosted LLM instead of a cloud API
+- Avoiding `cat .env` or printing secrets in monitored panes
+
 ## How it works
 
 1. Timer fires every N seconds (default 60s)

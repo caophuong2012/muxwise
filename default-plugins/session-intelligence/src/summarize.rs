@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use serde_json::json;
 use zellij_tile::prelude::*;
 
+use crate::sanitize;
 use crate::state::{AiProvider, PaneStatus, PluginConfig};
 
 /// System prompt that instructs the AI how to produce pane summaries.
@@ -56,14 +57,17 @@ pub fn build_request(
 )> {
     let api_key = config.api_key.as_ref()?;
 
+    // Sanitize scrollback to remove sensitive data before sending to external API.
+    let sanitized = sanitize::sanitize_scrollback(scrollback);
+
     // Build context for request correlation.
     let mut context = BTreeMap::new();
     context.insert("pane_id".to_string(), pane_id.to_string());
     context.insert("is_plugin".to_string(), is_plugin.to_string());
 
     match config.ai_provider {
-        AiProvider::Anthropic => build_anthropic_request(api_key, scrollback, context),
-        AiProvider::OpenAi => build_openai_request(api_key, scrollback, context),
+        AiProvider::Anthropic => build_anthropic_request(api_key, &sanitized, context),
+        AiProvider::OpenAi => build_openai_request(api_key, &sanitized, context),
     }
 }
 

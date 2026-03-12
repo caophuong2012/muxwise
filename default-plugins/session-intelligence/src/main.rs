@@ -1,5 +1,6 @@
 mod capture;
 mod persistence;
+mod sanitize;
 mod sidebar;
 mod state;
 mod summarize;
