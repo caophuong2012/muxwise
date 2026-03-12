@@ -146,7 +146,8 @@ This is **best-effort, not a guarantee**. If you work with highly sensitive syst
 
 ### What we're exploring next
 - [x] **Scrollback snapshots** — saves captured scrollback to disk (sanitized) before it gets destroyed by terminal compaction or `/clear`, so context survives reboots
-- [ ] **Summary history** — see how a session evolved over time, not just the latest state. Useful for picking up where you left off after hours or days
+- [ ] **Summary history** — keep a timeline of summaries per pane, not just the latest. See how a session evolved. Previous-session summaries are tagged and dimmed so you know what's current vs what happened before a reboot. Press `h` to expand the full timeline
+- [ ] **Session memory** — on session resurrection, restore saved summaries and scrollback as "previous session" context. The user sees where they left off without confusion (old summaries are clearly labeled, not mistaken for current state). Once new activity appears, fresh summaries take over and old ones move to history
 - [ ] **Session handoff notes** — export a session's summary timeline as markdown, so you can hand context to a colleague or your future self
 - [ ] **Diff-aware summaries** — highlight what changed since your last check-in, not just the current state. Helps when reviewing multiple parallel sessions
 - [ ] **Smarter idle detection** — distinguish "waiting for user input" from "long-running process still working"
