@@ -16,12 +16,79 @@ Built on [Zellij](https://github.com/zellij-org/zellij) (v0.44.0), Muxwise adds 
 
 ## Installation
 
-Download a prebuilt binary from [Releases](https://github.com/caophuong2012/muxwise/releases) for your platform, or build from source:
+### Option 1: Download prebuilt binary
+
+Download from [Releases](https://github.com/caophuong2012/muxwise/releases) for your platform, extract, and add to your PATH:
+
+```bash
+# macOS (Apple Silicon)
+tar xzf muxwise-aarch64-apple-darwin.tar.gz
+sudo mv zellij /usr/local/bin/muxwise
+
+# macOS (Intel)
+tar xzf muxwise-x86_64-apple-darwin.tar.gz
+sudo mv zellij /usr/local/bin/muxwise
+
+# Linux (x86_64)
+tar xzf muxwise-x86_64-unknown-linux-musl.tar.gz
+sudo mv zellij /usr/local/bin/muxwise
+
+# Linux (aarch64)
+tar xzf muxwise-aarch64-unknown-linux-musl.tar.gz
+sudo mv zellij /usr/local/bin/muxwise
+```
+
+### Option 2: Build from source
+
+#### Prerequisites
+
+**Install Rust** (if not already installed):
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+```
+
+**Install system dependencies:**
+
+```bash
+# Ubuntu / Debian
+sudo apt update && sudo apt install -y build-essential protobuf-compiler pkg-config libssl-dev
+
+# Fedora / RHEL
+sudo dnf install -y gcc protobuf-compiler pkg-config openssl-devel
+
+# Arch Linux
+sudo pacman -S base-devel protobuf pkg-config openssl
+
+# macOS (via Homebrew)
+brew install protobuf
+```
+
+**Add the WASM build target:**
+
+```bash
+rustup target add wasm32-wasip1
+```
+
+#### Build
 
 ```bash
 git clone https://github.com/caophuong2012/muxwise.git
 cd muxwise
 cargo xtask build --release
+```
+
+The binary will be at `target/release/zellij`. Copy it to your PATH:
+
+```bash
+sudo cp target/release/zellij /usr/local/bin/muxwise
+```
+
+### Run
+
+```bash
+muxwise
 ```
 
 The Session Intelligence sidebar is included in the default layout — just launch and it's there.
