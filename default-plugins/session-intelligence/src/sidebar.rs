@@ -11,10 +11,36 @@ const STATUS_BLOCK: &str = "\u{258c}"; // ▌
 const INDENT: &str = "  ";
 
 /// Render the empty state message when no panes are tracked yet.
-fn render_empty_state(row: usize, width: usize) {
-    let empty_msg = "No panes detected yet.";
-    let empty_text = Text::new(empty_msg).dim_all();
-    print_text_with_coordinates(empty_text, 1, row, Some(width.saturating_sub(1)), Some(1));
+fn render_empty_state(row: usize, width: usize, has_api_key: bool) {
+    let mut r = row;
+    let w = width.saturating_sub(1);
+
+    let msg1 = "No panes detected yet.";
+    print_text_with_coordinates(Text::new(msg1).dim_all(), 1, r, Some(w), Some(1));
+    r += 2;
+
+    if !has_api_key {
+        let lines = [
+            "Setup:",
+            "  1. Get an API key from:",
+            "     - console.anthropic.com",
+            "     - platform.openai.com",
+            "     - openrouter.ai",
+            "  2. Add to config:",
+            "     ~/.config/zellij/config.kdl",
+            "",
+            "  plugins {",
+            "    session-intelligence ... {",
+            "      ai_api_key \"your-key\"",
+            "    }",
+            "  }",
+        ];
+        for line in &lines {
+            let text = Text::new(line).dim_all();
+            print_text_with_coordinates(text, 1, r, Some(w), Some(1));
+            r += 1;
+        }
+    }
 }
 
 /// Hard-wrap a string to fit within `max_width` columns.
@@ -256,10 +282,11 @@ pub fn render_sidebar(state: &mut PluginState, rows: usize, cols: usize) {
         .collect();
     entries.sort_by_key(|((id, is_plugin), _)| (*id, *is_plugin));
 
+    let has_api_key = state.config.api_key.is_some();
+
     if entries.is_empty() {
-        render_empty_state(content_start_row, width);
+        render_empty_state(content_start_row, width, has_api_key);
     } else {
-        let has_api_key = state.config.api_key.is_some();
 
         // Render each pane entry, tracking the current row position.
         let mut current_row = content_start_row;
