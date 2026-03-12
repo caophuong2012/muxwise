@@ -107,7 +107,7 @@ fn render_pane_entry(
     let mut rows_used: usize = 0;
 
     // Determine summary and status, falling back to defaults for panes without summaries.
-    let no_key_msg = "Add ai_api_key to config.kdl";
+    let no_key_msg = "Set ai_api_key in ~/.config/zellij/config.kdl";
     let awaiting_msg = "Awaiting summary...";
     let (summary_text, status, timestamp, is_stale, has_summary) = match &pane_data.summary {
         Some(summary) => (
