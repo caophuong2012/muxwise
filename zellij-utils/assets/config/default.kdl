@@ -250,10 +250,10 @@ plugins {
     about location="zellij:about"
     sequence location="zellij:sequence"
     // Session Intelligence sidebar — add your API key to enable AI summaries
-    // Get a key at: https://console.anthropic.com/ (Anthropic) or https://platform.openai.com/ (OpenAI)
+    // Get a key at: https://console.anthropic.com/ | https://platform.openai.com/ | https://openrouter.ai/
     session-intelligence location="zellij:session-intelligence" {
         // ai_api_key "your-api-key-here"
-        // ai_provider "anthropic"          // "anthropic" (default) or "openai"
+        // ai_provider "anthropic"          // "anthropic" (default), "openai", or "openrouter"
         // summarization_interval "60"      // seconds between scans
         // buffer_size "2000"               // max scrollback lines
         // cooldown "30"                    // min seconds between re-summarizing same pane

@@ -308,16 +308,23 @@ fn format_tokens(count: u64) -> String {
 
 /// Render diagnostic info at the bottom of the sidebar.
 fn render_diagnostics(state: &PluginState, rows: usize, width: usize) {
-    if rows < 3 || width == 0 {
+    if rows < 4 || width == 0 {
         return;
     }
 
-    let sep_row = rows.saturating_sub(2);
+    let sep_row = rows.saturating_sub(3);
     let separator: String = "\u{2500}".repeat(width);
     let sep_text = Text::new(&separator).dim_all();
     print_text_with_coordinates(sep_text, 0, sep_row, Some(width), Some(1));
 
-    // Line 1: token usage
+    // Line 1: status message (scan status, errors, etc.)
+    if !state.last_status_msg.is_empty() {
+        let status_display: String = state.last_status_msg.chars().take(width).collect();
+        let status_text = Text::new(&status_display).dim_all();
+        print_text_with_coordinates(status_text, 0, sep_row + 1, Some(width), Some(1));
+    }
+
+    // Line 2: token usage
     let total_tokens = state.total_input_tokens + state.total_output_tokens;
     let stats = if total_tokens > 0 {
         format!("tokens: {}", format_tokens(total_tokens))
@@ -325,7 +332,7 @@ fn render_diagnostics(state: &PluginState, rows: usize, width: usize) {
         "tokens: 0".to_string()
     };
     let stats_text = Text::new(&stats).dim_all();
-    print_text_with_coordinates(stats_text, 0, sep_row + 1, Some(width), Some(1));
+    print_text_with_coordinates(stats_text, 0, sep_row + 2, Some(width), Some(1));
 }
 
 #[cfg(test)]

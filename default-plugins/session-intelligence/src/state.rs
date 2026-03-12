@@ -17,6 +17,7 @@ const DEFAULT_COOLDOWN_SECS: f64 = 30.0;
 pub enum AiProvider {
     Anthropic,
     OpenAi,
+    OpenRouter,
 }
 
 impl Default for AiProvider {
@@ -69,13 +70,27 @@ impl PluginConfig {
             );
         }
 
-        let ai_provider = config
-            .get("ai_provider")
-            .map(|v| match v.to_lowercase().as_str() {
+        // Determine AI provider: explicit config > auto-detect from key prefix > default.
+        let ai_provider = if let Some(provider_str) = config.get("ai_provider") {
+            match provider_str.to_lowercase().as_str() {
                 "openai" | "open_ai" | "open-ai" => AiProvider::OpenAi,
+                "openrouter" | "open_router" | "open-router" => AiProvider::OpenRouter,
                 _ => AiProvider::Anthropic,
-            })
-            .unwrap_or(AiProvider::Anthropic);
+            }
+        } else if let Some(ref key) = api_key {
+            // Auto-detect provider from API key prefix.
+            if key.starts_with("sk-or-") {
+                AiProvider::OpenRouter
+            } else if key.starts_with("sk-ant-") {
+                AiProvider::Anthropic
+            } else if key.starts_with("sk-") {
+                AiProvider::OpenAi
+            } else {
+                AiProvider::Anthropic
+            }
+        } else {
+            AiProvider::Anthropic
+        };
 
         let summarization_interval_secs = config
             .get("summarization_interval")

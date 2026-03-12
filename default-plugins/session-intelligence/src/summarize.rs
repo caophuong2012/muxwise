@@ -32,11 +32,17 @@ const ANTHROPIC_API_URL: &str = "https://api.anthropic.com/v1/messages";
 /// OpenAI Chat Completions API endpoint.
 const OPENAI_API_URL: &str = "https://api.openai.com/v1/chat/completions";
 
+/// OpenRouter Chat Completions API endpoint.
+const OPENROUTER_API_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
+
 /// Anthropic model to use for summarization.
 const ANTHROPIC_MODEL: &str = "claude-haiku-4-5-20251001";
 
 /// OpenAI model to use for summarization.
 const OPENAI_MODEL: &str = "gpt-4o-mini";
+
+/// OpenRouter model to use for summarization (cheapest capable model).
+const OPENROUTER_MODEL: &str = "google/gemini-2.0-flash-lite-001";
 
 /// Build an HTTP request for the configured AI provider.
 ///
@@ -68,6 +74,7 @@ pub fn build_request(
     match config.ai_provider {
         AiProvider::Anthropic => build_anthropic_request(api_key, &sanitized, context),
         AiProvider::OpenAi => build_openai_request(api_key, &sanitized, context),
+        AiProvider::OpenRouter => build_openrouter_request(api_key, &sanitized, context),
     }
 }
 
@@ -144,6 +151,46 @@ fn build_openai_request(
 
     let body = serde_json::to_vec(&body_json).unwrap_or_default();
     Some((OPENAI_API_URL.to_string(), HttpVerb::Post, headers, body, context))
+}
+
+fn build_openrouter_request(
+    api_key: &str,
+    scrollback: &str,
+    context: BTreeMap<String, String>,
+) -> Option<(
+    String,
+    HttpVerb,
+    BTreeMap<String, String>,
+    Vec<u8>,
+    BTreeMap<String, String>,
+)> {
+    let mut headers = BTreeMap::new();
+    headers.insert(
+        "Authorization".to_string(),
+        format!("Bearer {}", api_key),
+    );
+    headers.insert("content-type".to_string(), "application/json".to_string());
+
+    let body_json = json!({
+        "model": OPENROUTER_MODEL,
+        "max_tokens": 256,
+        "messages": [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT
+            },
+            {
+                "role": "user",
+                "content": format!(
+                    "Here is the terminal scrollback output for this pane:\n\n{}",
+                    scrollback
+                )
+            }
+        ]
+    });
+
+    let body = serde_json::to_vec(&body_json).unwrap_or_default();
+    Some((OPENROUTER_API_URL.to_string(), HttpVerb::Post, headers, body, context))
 }
 
 /// Token usage from an API response.

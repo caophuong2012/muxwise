@@ -16,6 +16,12 @@ register_plugin!(PluginState);
 impl PluginState {
     /// Run a summarization scan: check scrollback hashes and queue changed panes.
     fn run_summarization_scan(&mut self) {
+        if !self.permissions_granted {
+            self.last_status_msg = "Waiting for permissions...".to_string();
+            eprintln!("session-intelligence: scan skipped — permissions not yet granted");
+            return;
+        }
+
         let active_tab = self.active_tab_index;
         let pane_keys: Vec<(u32, bool)> = self
             .panes
@@ -45,6 +51,10 @@ impl PluginState {
             let buffer_size = self.config.buffer_size_lines;
             let scrollback = capture::fetch_scrollback(pane_id, is_plugin, buffer_size);
             let new_hash = capture::hash_scrollback(&scrollback);
+            eprintln!(
+                "session-intelligence: pane {} scrollback: {} chars, hash: {}",
+                pane_id, scrollback.len(), new_hash
+            );
 
             if let Some(pane_data) = self.panes.get_mut(&(pane_id, is_plugin)) {
                 // Save scrollback snapshot whenever content changes (survives reboots).
@@ -86,8 +96,13 @@ impl PluginState {
         }
 
         self.last_status_msg = format!(
-            "Scan #{}: {} pane(s), {} queued",
+            "Scan #{}: {}p, {}q",
             self.timer_cycles, terminal_pane_count, queued_count
+        );
+        eprintln!(
+            "session-intelligence: scan #{}: {} terminal pane(s), {} queued, api_key={}",
+            self.timer_cycles, terminal_pane_count, queued_count,
+            if self.config.api_key.is_some() { "yes" } else { "no" }
         );
 
         self.dequeue_next_summarization();
@@ -130,14 +145,10 @@ impl PluginState {
 
 impl ZellijPlugin for PluginState {
     fn load(&mut self, configuration: BTreeMap<String, String>) {
-        // Request all permissions needed by this plugin (current + future stories).
-        request_permission(&[
-            PermissionType::ReadPaneContents,
-            PermissionType::WebAccess,
-            PermissionType::ChangeApplicationState,
-            PermissionType::ReadApplicationState,
-            PermissionType::FullHdAccess,
-        ]);
+        // Built-in plugins (zellij:*) are auto-granted all permissions,
+        // so we skip request_permission() to avoid showing the permission dialog.
+        // Mark as granted immediately.
+        self.permissions_granted = true;
 
         // Subscribe to the events this plugin will handle.
         subscribe(&[
@@ -148,7 +159,6 @@ impl ZellijPlugin for PluginState {
             EventType::TabUpdate,
             EventType::SessionUpdate,
             EventType::WebRequestResult,
-            EventType::PermissionRequestResult,
         ]);
 
         // Parse configuration from KDL config values.
@@ -389,19 +399,8 @@ impl ZellijPlugin for PluginState {
 
                 self.dequeue_next_summarization();
             },
-            Event::PermissionRequestResult(result) => {
-                match result {
-                    PermissionStatus::Granted => {
-                        eprintln!("session-intelligence: permissions granted");
-                        self.permissions_granted = true;
-                        self.last_status_msg = "Permissions granted".to_string();
-                    },
-                    PermissionStatus::Denied => {
-                        eprintln!("session-intelligence: permissions denied");
-                        self.permissions_granted = false;
-                        self.last_status_msg = "Permissions DENIED".to_string();
-                    },
-                }
+            Event::PermissionRequestResult(_result) => {
+                // Built-in plugins are auto-granted; this handler is kept for completeness.
                 should_render = true;
             },
             _ => {},
