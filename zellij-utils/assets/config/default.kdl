@@ -249,7 +249,15 @@ plugins {
     plugin-manager location="zellij:plugin-manager"
     about location="zellij:about"
     sequence location="zellij:sequence"
-    session-intelligence location="zellij:session-intelligence"
+    // Session Intelligence sidebar — add your API key to enable AI summaries
+    // Get a key at: https://console.anthropic.com/ (Anthropic) or https://platform.openai.com/ (OpenAI)
+    session-intelligence location="zellij:session-intelligence" {
+        // ai_api_key "your-api-key-here"
+        // ai_provider "anthropic"          // "anthropic" (default) or "openai"
+        // summarization_interval "60"      // seconds between scans
+        // buffer_size "2000"               // max scrollback lines
+        // cooldown "30"                    // min seconds between re-summarizing same pane
+    }
 }
 
 // Plugins to load in the background when a new session starts
