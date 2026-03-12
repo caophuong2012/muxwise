@@ -28,19 +28,46 @@ The Session Intelligence sidebar is included in the default layout — just laun
 
 ## Configuration
 
-Set your AI API key in `~/.config/zellij/config.kdl`:
+Add your API key to `~/.config/zellij/config.kdl`. Muxwise supports two providers:
+
+### Anthropic (default) — uses Claude Haiku
 
 ```kdl
 plugins {
     session-intelligence location="zellij:session-intelligence" {
-        ai_api_key "your-api-key-here"
-        ai_provider "anthropic"          // or "openai"
-        summarization_interval "60"      // seconds between scans
-        buffer_size "2000"               // max scrollback lines
-        cooldown "30"                    // min seconds between re-summarizing same pane
+        ai_api_key "sk-ant-..."          // your Anthropic API key
+        ai_provider "anthropic"          // default, can be omitted
+        summarization_interval "60"      // seconds between scans (default: 60)
+        buffer_size "2000"               // max scrollback lines to capture (default: 2000)
+        cooldown "30"                    // min seconds between re-summarizing same pane (default: 30)
     }
 }
 ```
+
+Get an API key at [console.anthropic.com](https://console.anthropic.com/)
+
+### OpenAI — uses GPT-4o-mini
+
+```kdl
+plugins {
+    session-intelligence location="zellij:session-intelligence" {
+        ai_api_key "sk-..."              // your OpenAI API key
+        ai_provider "openai"
+    }
+}
+```
+
+Get an API key at [platform.openai.com](https://platform.openai.com/)
+
+### Configuration options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `ai_api_key` | *(required)* | API key for your chosen provider |
+| `ai_provider` | `"anthropic"` | `"anthropic"` or `"openai"` |
+| `summarization_interval` | `"60"` | Seconds between automatic scans |
+| `buffer_size` | `"2000"` | Max scrollback lines to capture per pane |
+| `cooldown` | `"30"` | Min seconds before re-summarizing the same pane |
 
 For general Zellij configuration, see the [Zellij Configuration Documentation](https://zellij.dev/documentation/configuration.html).
 
