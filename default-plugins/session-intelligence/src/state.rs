@@ -223,6 +223,8 @@ pub struct PaneData {
     pub last_summarized_at: f64,
     /// Last captured scrollback content, used for persistence across restarts.
     pub last_scrollback: Option<String>,
+    /// Detected working directory for this pane.
+    pub cwd: Option<String>,
 }
 
 /// Central plugin state. All state flows through this struct.
@@ -322,6 +324,7 @@ impl PluginState {
                     .unwrap_or(0.0);
                 let last_scrollback = existing
                     .and_then(|e| e.last_scrollback.clone());
+                let cwd = existing.and_then(|e| e.cwd.clone());
 
                 new_panes.insert(
                     key,
@@ -333,6 +336,7 @@ impl PluginState {
                         summary,
                         last_summarized_at,
                         last_scrollback,
+                        cwd,
                     },
                 );
             }

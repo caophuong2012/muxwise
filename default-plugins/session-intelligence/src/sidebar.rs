@@ -199,6 +199,18 @@ fn render_pane_entry(
     print_text_with_coordinates(header_text, 0, row, Some(width), Some(1));
     rows_used += 1;
 
+    // -- CWD line (dim, indented) --
+    if let Some(ref cwd) = pane_data.cwd {
+        let row = start_row + rows_used;
+        if row >= start_row + max_rows {
+            return rows_used;
+        }
+        let cwd_line = format!("{}{}", INDENT, cwd);
+        let cwd_text = Text::new(&cwd_line).color_range(3, ..).dim_all();
+        print_text_with_coordinates(cwd_text, 0, row, Some(width), Some(1));
+        rows_used += 1;
+    }
+
     // -- Summary lines (2-3 lines, indented, normal weight; dim if stale or pending) --
     let summary_width = width.saturating_sub(INDENT.chars().count());
     let wrapped_lines = hard_wrap(summary_text, summary_width);

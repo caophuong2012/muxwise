@@ -59,6 +59,13 @@ impl PluginState {
             );
 
             if let Some(pane_data) = self.panes.get_mut(&(pane_id, is_plugin)) {
+                // Detect working directory from pane title + scrollback.
+                if !scrollback.is_empty() {
+                    if let Some(cwd) = capture::detect_cwd(&pane_data.name, &scrollback) {
+                        pane_data.cwd = Some(cwd);
+                    }
+                }
+
                 // Save scrollback snapshot whenever content changes (survives reboots).
                 if !scrollback.is_empty() && new_hash != pane_data.last_scrollback_hash {
                     pane_data.last_scrollback = Some(scrollback.clone());
