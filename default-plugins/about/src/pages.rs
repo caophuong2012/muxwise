@@ -629,10 +629,10 @@ fn whats_new_title() -> Text {
 
 fn main_screen_title(version: String, is_release_notes: bool) -> Text {
     if is_release_notes {
-        let title_text = format!("Hi there, welcome to Zellij {}!", &version);
-        Text::new(title_text).color_range(2, 21..=27 + version.chars().count())
+        let title_text = format!("Hi there, welcome to Muxwise {}!", &version);
+        Text::new(title_text).color_range(2, 21..=28 + version.chars().count())
     } else {
-        let title_text = format!("Zellij {}", &version);
+        let title_text = format!("Muxwise {}", &version);
         Text::new(title_text).color_range(2, ..)
     }
 }
@@ -700,7 +700,7 @@ fn main_menu_item(item_name: &str) -> Text {
 }
 
 fn support_the_developer_text() -> Text {
-    let support_text = format!("Please support the Zellij developer <3: ");
+    let support_text = format!("Please support the Muxwise developer <3: ");
     Text::new(support_text).color_range(3, ..)
 }
 

@@ -815,7 +815,7 @@ fn theme_list_selected_len() -> usize {
 }
 
 fn support_the_developer_text() -> Text {
-    let support_text = format!("Please support the Zellij developer <3: ");
+    let support_text = format!("Please support the Muxwise developer <3: ");
     Text::new(support_text).color_range(3, ..)
 }
 

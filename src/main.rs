@@ -306,11 +306,11 @@ fn main() {
                     if version != VERSION {
                         println!("");
                         println!(
-                            "Note: this version differs from the current Zellij version: {}.",
+                            "Note: this version differs from the current Muxwise version: {}.",
                             VERSION
                         );
-                        println!("Consider stopping the server with: zellij web --stop");
-                        println!("And then restarting it with: zellij web --start");
+                        println!("Consider stopping the server with: muxwise web --stop");
+                        println!("And then restarting it with: muxwise web --start");
                     }
                 },
                 Err(_e) => {

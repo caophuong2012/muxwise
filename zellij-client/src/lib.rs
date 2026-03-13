@@ -459,7 +459,7 @@ pub fn start_remote_client(
     remember: bool,
     forget: bool,
 ) -> Result<Option<ConnectToSession>, RemoteClientError> {
-    info!("Starting Zellij client!");
+    info!("Starting Muxwise client!");
 
     let runtime = Runtime::new().map_err(|e| RemoteClientError::IoError(e))?;
 
@@ -547,7 +547,7 @@ pub fn start_remote_client(
         connections,
     ))?;
 
-    let exit_msg = String::from("Bye from Zellij!");
+    let exit_msg = String::from("Bye from Muxwise!");
 
     if reconnect_to_session.is_none() {
         reset_controlling_terminal_state(exit_msg, 0);
@@ -577,7 +577,7 @@ pub fn start_client(
         start_server_detached(os_input, cli_args, config, config_options, info);
         return None;
     }
-    info!("Starting Zellij client!");
+    info!("Starting Muxwise client!");
 
     let explicitly_disable_kitty_keyboard_protocol = config_options
         .support_kitty_keyboard_protocol
@@ -955,7 +955,7 @@ pub fn start_client(
 
     let mut stdout = os_input.get_stdout_writer();
     stdout
-        .write_all("\u{1b}[1m\u{1b}[HLoading Zellij\u{1b}[m\n\r".as_bytes())
+        .write_all("\u{1b}[1m\u{1b}[HLoading Muxwise\u{1b}[m\n\r".as_bytes())
         .expect("cannot write to stdout");
     stdout.flush().expect("could not flush");
 

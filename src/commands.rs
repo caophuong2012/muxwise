@@ -210,10 +210,10 @@ pub(crate) fn start_web_server(
     _key: Option<PathBuf>,
 ) {
     log::error!(
-        "This version of Zellij was compiled without web server support, cannot run web server!"
+        "This version of Muxwise was compiled without web server support, cannot run web server!"
     );
     eprintln!(
-        "This version of Zellij was compiled without web server support, cannot run web server!"
+        "This version of Muxwise was compiled without web server support, cannot run web server!"
     );
     std::process::exit(2);
 }
@@ -231,10 +231,10 @@ pub(crate) fn stop_web_server() -> Result<(), String> {
 #[cfg(not(feature = "web_server_capability"))]
 pub(crate) fn stop_web_server() -> Result<(), String> {
     log::error!(
-        "This version of Zellij was compiled without web server support, cannot stop web server!"
+        "This version of Muxwise was compiled without web server support, cannot stop web server!"
     );
     eprintln!(
-        "This version of Zellij was compiled without web server support, cannot stop web server!"
+        "This version of Muxwise was compiled without web server support, cannot stop web server!"
     );
     std::process::exit(2);
 }
@@ -253,10 +253,10 @@ pub(crate) fn create_auth_token(name: Option<String>, read_only: bool) -> Result
 #[cfg(not(feature = "web_server_capability"))]
 pub(crate) fn create_auth_token(_name: Option<String>, _read_only: bool) -> Result<String, String> {
     log::error!(
-        "This version of Zellij was compiled without web server support, cannot create auth token!"
+        "This version of Muxwise was compiled without web server support, cannot create auth token!"
     );
     eprintln!(
-        "This version of Zellij was compiled without web server support, cannot create auth token!"
+        "This version of Muxwise was compiled without web server support, cannot create auth token!"
     );
     std::process::exit(2);
 }
@@ -269,10 +269,10 @@ pub(crate) fn revoke_auth_token(token_name: &str) -> Result<bool, String> {
 #[cfg(not(feature = "web_server_capability"))]
 pub(crate) fn revoke_auth_token(_token_name: &str) -> Result<bool, String> {
     log::error!(
-        "This version of Zellij was compiled without web server support, cannot revoke auth token!"
+        "This version of Muxwise was compiled without web server support, cannot revoke auth token!"
     );
     eprintln!(
-        "This version of Zellij was compiled without web server support, cannot revoke auth token!"
+        "This version of Muxwise was compiled without web server support, cannot revoke auth token!"
     );
     std::process::exit(2);
 }
@@ -286,10 +286,10 @@ pub(crate) fn revoke_all_auth_tokens() -> Result<usize, String> {
 #[cfg(not(feature = "web_server_capability"))]
 pub(crate) fn revoke_all_auth_tokens() -> Result<usize, String> {
     log::error!(
-        "This version of Zellij was compiled without web server support, cannot revoke all tokens!"
+        "This version of Muxwise was compiled without web server support, cannot revoke all tokens!"
     );
     eprintln!(
-        "This version of Zellij was compiled without web server support, cannot revoke all tokens!"
+        "This version of Muxwise was compiled without web server support, cannot revoke all tokens!"
     );
     std::process::exit(2);
 }
@@ -315,10 +315,10 @@ pub(crate) fn list_auth_tokens() -> Result<Vec<String>, String> {
 #[cfg(not(feature = "web_server_capability"))]
 pub(crate) fn list_auth_tokens() -> Result<Vec<String>, String> {
     log::error!(
-        "This version of Zellij was compiled without web server support, cannot list tokens!"
+        "This version of Muxwise was compiled without web server support, cannot list tokens!"
     );
     eprintln!(
-        "This version of Zellij was compiled without web server support, cannot list tokens!"
+        "This version of Muxwise was compiled without web server support, cannot list tokens!"
     );
     std::process::exit(2);
 }
@@ -348,10 +348,10 @@ pub(crate) fn web_server_status(web_server_base_url: &str) -> Result<String, Str
 #[cfg(not(feature = "web_server_capability"))]
 pub(crate) fn web_server_status(_web_server_base_url: &str) -> Result<String, String> {
     log::error!(
-        "This version of Zellij was compiled without web server support, cannot get web server status!"
+        "This version of Muxwise was compiled without web server support, cannot get web server status!"
     );
     eprintln!(
-        "This version of Zellij was compiled without web server support, cannot get web server status!"
+        "This version of Muxwise was compiled without web server support, cannot get web server status!"
     );
     std::process::exit(2);
 }
@@ -688,7 +688,7 @@ pub(crate) fn start_client(opts: CliArgs) {
                 }
             }) {
                 if !cfg!(feature = "web_server_capability") {
-                    eprintln!("This version of Zellij was compiled without web/remote-attach capabilities.");
+                    eprintln!("This version of Muxwise was compiled without web/remote-attach capabilities.");
                     std::process::exit(2);
                 }
 
@@ -824,7 +824,7 @@ pub(crate) fn start_client(opts: CliArgs) {
                         // `zellij_server::terminal_bytes::listen` task, flooding the server and
                         // clients with infinite `Render` requests.
                         if *session_name == val {
-                            eprintln!("You are trying to attach to the current session (\"{}\"). Zellij does not support nesting a session in itself.", session_name);
+                            eprintln!("You are trying to attach to the current session (\"{}\"). Muxwise does not support nesting a session in itself.", session_name);
                             process::exit(1);
                         }
                     }
