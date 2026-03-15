@@ -405,6 +405,9 @@ impl ZellijPlugin for PluginState {
 
                     if let Some(pane_id) = pane_id {
                         if let Some(pane_data) = self.panes.get_mut(&(pane_id, is_plugin)) {
+                            // Reset scrollback hash so this pane gets re-queued
+                            // on the next scan cycle instead of being permanently stuck.
+                            pane_data.last_scrollback_hash = 0;
                             if let Some(ref mut summary) = pane_data.summary {
                                 summary.is_stale = true;
                                 should_render = true;
