@@ -149,20 +149,29 @@ fn render_pane_entry(
         },
     };
 
-    // -- Row 0: Status block + pane name --
-    // Build the header line: "▌ <name>"
+    // -- Row 0: Status block + pane name (or title if available) --
+    // Show the AI-generated title when we have a summary, fall back to pane name.
+    let display_label = if has_summary {
+        pane_data.summary.as_ref()
+            .and_then(|s| s.title.as_deref())
+            .unwrap_or(&pane_data.name)
+    } else {
+        &pane_data.name
+    };
+
+    // Build the header line: "▌ <label>"
     let status_char_len = STATUS_BLOCK.chars().count(); // 1 char for ▌
     let separator = " ";
     let name_max = width.saturating_sub(status_char_len + separator.len());
-    let display_name: String = if pane_data.name.chars().count() > name_max {
+    let display_name: String = if display_label.chars().count() > name_max {
         if name_max > 3 {
-            let truncated: String = pane_data.name.chars().take(name_max - 3).collect();
+            let truncated: String = display_label.chars().take(name_max - 3).collect();
             format!("{}...", truncated)
         } else {
-            pane_data.name.chars().take(name_max).collect()
+            display_label.chars().take(name_max).collect()
         }
     } else {
-        pane_data.name.clone()
+        display_label.to_string()
     };
 
     let header_line = format!("{}{}{}", STATUS_BLOCK, separator, display_name);

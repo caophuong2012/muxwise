@@ -29,6 +29,9 @@ pub struct PersistedPaneData {
     pub name: String,
     /// AI-generated summary text, if available.
     pub summary_text: Option<String>,
+    /// Short activity title (e.g., "cargo build").
+    #[serde(default)]
+    pub title: Option<String>,
     /// Status string: "GREEN", "YELLOW", or "RED".
     pub status: Option<String>,
     /// Timestamp of when the summary was generated.
@@ -157,13 +160,14 @@ pub fn save_state(state: &PluginState, session_name: &str) {
     let mut panes = HashMap::new();
     for (&(pane_id, is_plugin), pane_data) in &state.panes {
         let key = pane_key(pane_id, is_plugin);
-        let (summary_text, status, generated_at) = match &pane_data.summary {
+        let (summary_text, title, status, generated_at) = match &pane_data.summary {
             Some(summary) => (
                 Some(summary.text.clone()),
+                summary.title.clone(),
                 Some(summary.status.to_str().to_string()),
                 Some(summary.generated_at.clone()),
             ),
-            None => (None, None, None),
+            None => (None, None, None, None),
         };
 
         panes.insert(
@@ -171,6 +175,7 @@ pub fn save_state(state: &PluginState, session_name: &str) {
             PersistedPaneData {
                 name: pane_data.name.clone(),
                 summary_text,
+                title,
                 status,
                 generated_at,
                 last_scrollback_hash: pane_data.last_scrollback_hash,
@@ -319,6 +324,7 @@ pub fn restore_into(persisted: &PersistedState, state: &mut PluginState) {
 
             pane_data.summary = Some(PaneSummary {
                 text: summary_text.clone(),
+                title: persisted_pane.title.clone(),
                 status,
                 generated_at,
                 is_stale: false,
@@ -370,6 +376,7 @@ mod tests {
             PersistedPaneData {
                 name: "test-pane".to_string(),
                 summary_text: Some("All good".to_string()),
+                title: Some("cargo build".to_string()),
                 status: Some("GREEN".to_string()),
                 generated_at: Some("2024-01-01T00:00:00Z".to_string()),
                 last_scrollback_hash: 12345,

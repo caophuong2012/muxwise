@@ -195,8 +195,10 @@ impl Default for PaneStatus {
 /// AI-generated summary for a single pane.
 #[derive(Debug, Clone)]
 pub struct PaneSummary {
-    /// The summary text (2-3 lines).
+    /// The summary text (1-2 sentences).
     pub text: String,
+    /// Short activity label (e.g., "cargo build", "npm test").
+    pub title: Option<String>,
     /// The status color derived from the AI response.
     pub status: PaneStatus,
     /// Timestamp string of when this summary was generated.

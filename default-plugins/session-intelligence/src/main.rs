@@ -10,6 +10,7 @@ use zellij_tile::prelude::*;
 
 use sidebar::render_sidebar;
 use state::{PaneSummary, PluginConfig, PluginState};
+use summarize::PaneContext;
 
 register_plugin!(PluginState);
 
@@ -146,8 +147,17 @@ impl PluginState {
             return;
         }
 
+        // Build pane context for richer AI prompts.
+        let pane_data = self.panes.get(&(pane_id, is_plugin));
+        let pane_name_owned = pane_data.map(|d| d.name.clone()).unwrap_or_default();
+        let pane_cwd_owned = pane_data.and_then(|d| d.cwd.clone());
+        let pane_ctx = PaneContext {
+            name: &pane_name_owned,
+            cwd: pane_cwd_owned.as_deref(),
+        };
+
         if let Some((url, verb, headers, body, context)) =
-            summarize::build_request(pane_id, is_plugin, &scrollback, &self.config)
+            summarize::build_request(pane_id, is_plugin, &scrollback, &self.config, Some(&pane_ctx))
         {
             eprintln!(
                 "session-intelligence: sending API request for pane {} ({} bytes) to {}",
@@ -284,12 +294,20 @@ impl ZellijPlugin for PluginState {
                                 "Pane {} scrollback: {} chars",
                                 pane_id, scroll_len
                             );
+                            let pane_data = self.panes.get(&(pane_id, is_plugin));
+                            let pane_name_owned = pane_data.map(|d| d.name.clone()).unwrap_or_default();
+                            let pane_cwd_owned = pane_data.and_then(|d| d.cwd.clone());
+                            let pane_ctx = PaneContext {
+                                name: &pane_name_owned,
+                                cwd: pane_cwd_owned.as_deref(),
+                            };
                             if let Some((url, verb, headers, body, context)) =
                                 summarize::build_request(
                                     pane_id,
                                     is_plugin,
                                     &scrollback,
                                     &self.config,
+                                    Some(&pane_ctx),
                                 )
                             {
                                 web_request(&url, verb, headers, body, context);
@@ -360,23 +378,22 @@ impl ZellijPlugin for PluginState {
 
                 if status_code == 200 {
                     let body_str = String::from_utf8_lossy(&body);
-                    if let Some((summary_text, pane_status, usage)) =
-                        summarize::parse_response(&body_str)
-                    {
-                        self.total_input_tokens += usage.input_tokens;
-                        self.total_output_tokens += usage.output_tokens;
+                    if let Some(parsed) = summarize::parse_response(&body_str) {
+                        self.total_input_tokens += parsed.usage.input_tokens;
+                        self.total_output_tokens += parsed.usage.output_tokens;
 
                         if let Some(pane_id) = pane_id {
                             let key = (pane_id, is_plugin);
                             let mut summary_updated = false;
                             if let Some(pane_data) = self.panes.get_mut(&key) {
                                 eprintln!(
-                                    "session-intelligence: summary updated for pane {} (status: {:?})",
-                                    pane_id, pane_status
+                                    "session-intelligence: summary updated for pane {} (status: {:?}, title: {:?})",
+                                    pane_id, parsed.status, parsed.title
                                 );
                                 pane_data.summary = Some(PaneSummary {
-                                    text: summary_text,
-                                    status: pane_status,
+                                    text: parsed.text,
+                                    title: parsed.title,
+                                    status: parsed.status,
                                     generated_at: String::new(),
                                     is_stale: false,
                                 });
