@@ -1,9 +1,6 @@
 use crate::state::{PaneData, PaneStatus, PluginState};
 use zellij_tile::prelude::*;
 
-/// Target sidebar width in columns.
-const SIDEBAR_WIDTH: usize = 30;
-
 /// Unicode left-edge status block character.
 const STATUS_BLOCK: &str = "\u{258c}"; // ▌
 
@@ -276,7 +273,7 @@ pub fn render_sidebar(state: &mut PluginState, rows: usize, cols: usize) {
         return;
     }
 
-    let width = cols.min(SIDEBAR_WIDTH);
+    let width = cols;
     if width == 0 || rows == 0 {
         return;
     }
