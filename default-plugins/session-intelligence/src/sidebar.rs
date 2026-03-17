@@ -281,18 +281,8 @@ pub fn render_sidebar(state: &mut PluginState, rows: usize, cols: usize) {
         return;
     }
 
-    // -- Header --
-    let header = "Muxwise";
-    let header_text = Text::new(header).selected();
-    print_text_with_coordinates(header_text, 0, 0, Some(width), Some(1));
-
-    // -- Separator line --
-    let separator: String = "\u{2500}".repeat(width);
-    let sep_text = Text::new(&separator);
-    print_text_with_coordinates(sep_text, 0, 1, Some(width), Some(1));
-
     // -- Pane list or empty state --
-    let content_start_row: usize = 2;
+    let content_start_row: usize = 0;
 
     // Collect and sort non-plugin pane entries for the active tab only.
     let active_tab = state.active_tab_index;
@@ -375,9 +365,9 @@ fn render_diagnostics(state: &PluginState, rows: usize, width: usize) {
     // Line 2: token usage
     let total_tokens = state.total_input_tokens + state.total_output_tokens;
     let stats = if total_tokens > 0 {
-        format!("tokens: {}", format_tokens(total_tokens))
+        format!("Tokens: {}", format_tokens(total_tokens))
     } else {
-        "tokens: 0".to_string()
+        "Tokens: 0".to_string()
     };
     let stats_text = Text::new(&stats).dim_all();
     print_text_with_coordinates(stats_text, 0, sep_row + 2, Some(width), Some(1));

@@ -366,7 +366,7 @@ impl ZellijPlugin for PluginState {
             },
             Event::WebRequestResult(status_code, _headers, body, context) => {
                 self.pending_request = None;
-                self.last_status_msg = format!("API response: {}", status_code);
+                // Don't overwrite status with API response code (debugging noise).
 
                 let pane_id = context
                     .get("pane_id")
