@@ -205,17 +205,26 @@ impl ZellijPlugin for PluginState {
             .unwrap_or_else(|| "default".to_string());
 
         // Attempt to restore persisted state from disk.
-        if let Some(persisted) = persistence::load_state(&self.session_name) {
+        let has_persisted_state = if let Some(persisted) = persistence::load_state(&self.session_name) {
             persistence::restore_into(&persisted, self);
             eprintln!(
                 "session-intelligence: restored persisted state for session '{}'",
                 self.session_name
             );
-        }
+            true
+        } else {
+            false
+        };
 
-        // Start with a short initial timer (5s) so the first cycle fires quickly,
-        // then subsequent cycles use the configured interval.
-        set_timeout(5.0);
+        // When we have persisted state, use the full interval so the user sees
+        // previous summaries without an immediate API burst. Fresh sessions
+        // still get a quick first scan (5s).
+        let initial_delay = if has_persisted_state {
+            self.config.summarization_interval_secs
+        } else {
+            5.0
+        };
+        set_timeout(initial_delay);
         eprintln!(
             "session-intelligence plugin loaded (summarization interval: {}s, session: '{}')",
             self.config.summarization_interval_secs, self.session_name

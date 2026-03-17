@@ -327,7 +327,7 @@ pub fn restore_into(persisted: &PersistedState, state: &mut PluginState) {
                 title: persisted_pane.title.clone(),
                 status,
                 generated_at,
-                is_stale: false,
+                is_stale: true, // Mark as stale so user knows this is from a previous session
             });
         }
     }
